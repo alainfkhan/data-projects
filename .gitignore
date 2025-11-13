@@ -1,3 +1,16 @@
+# ==================================================
+# Self entries
+# ==================================================
+
+# Ignore temporarily
+*.txt
+
+# MacOS
+.DS_store
+
+# ==================================================
+# Github .gitignore python default
+# ==================================================
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
