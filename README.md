@@ -1,3 +1,9 @@
 # Data projects 
-A public repo of small data projects for my portfolio.
+A public repo of my data projects.
 
+Using the Conda package manager.
+
+## Links to projects
+
+
+<!-- ## Methodology -->

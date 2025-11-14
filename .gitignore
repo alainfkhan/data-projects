@@ -4,6 +4,7 @@
 
 # Ignore temporarily
 *.txt
+!package-list.txt
 
 # MacOS
 .DS_store
