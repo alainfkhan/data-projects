@@ -1,5 +1,5 @@
-REQ=package-list.txt	# package requirements name
-ENV=data-projects		# name of env
+REQ=package-list.txt
+ENV=data-projects
 
 # Conda is the package manager for this projects
 

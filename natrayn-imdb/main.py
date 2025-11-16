@@ -1,30 +1,49 @@
+"""main.py initialises the workspace
+installs relevant data
+creates relavant dbs
+initialises notebooks
+"""
 import kaggle
-import yaml
+import pandas as pd
+from pandas import DataFrame
 from pathlib import Path
 
+
 NATRAYN_IMDB_DIR: Path = Path(__file__).parent.resolve()
-CONFIG_DIR: Path = NATRAYN_IMDB_DIR / "config.yml"
-RAW_DATA_DIR: Path = NATRAYN_IMDB_DIR / "data" / "raw"
+DATA_DIR: Path = NATRAYN_IMDB_DIR / "data"
 
-with open(CONFIG_DIR, "r") as f:
-    config = yaml.safe_load(f)
-
-# url: str = config["url"]
-handle: str = config["handle"]
-# dataset_name: str = config["dataset_name"]
+handle: str = "bharatnatrayn/movies-dataset-for-feature-extracion-prediction"
+filename_stem: str = "movies"
+filename_extension: str = ".csv"
+filename: str = f"{filename_stem}{filename_extension}"
 
 
 def download_files() -> None:
     kaggle.api.authenticate()
-    kaggle.api.dataset_download_files(handle, path=RAW_DATA_DIR, unzip=True)
-    kaggle.api.dataset_metadata(handle, path=RAW_DATA_DIR)
+    kaggle.api.dataset_download_files(dataset=handle, path=DATA_DIR, unzip=True)
+    kaggle.api.dataset_metadata(dataset=handle, path=DATA_DIR)
 
 
-def create_copy_to_folder():
+def copy_to_excel() -> None:
+    filepath: Path = DATA_DIR / filename
+    new_filename_stem: str = f"{filename_stem}-copy"
+    new_filename: str = f"{new_filename_stem}.xlsx"
+    
+    df: DataFrame = pd.read_csv(filepath)
+    df.to_excel(DATA_DIR / f"{new_filename}", sheet_name=new_filename_stem, index=False)
+    print(f"{new_filename} created.")    
+
+
+def foo() -> None:
+    # Create database
     pass
 
 
-def main():
+def main() -> None:
+    # download_files()
+    # copy_to_excel()
+    
+    
     pass
 
 
