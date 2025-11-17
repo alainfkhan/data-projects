@@ -3,8 +3,10 @@ installs relevant data
 creates relavant dbs
 initialises notebooks
 """
+
 import kaggle
 import pandas as pd
+import sqlite3
 from pandas import DataFrame
 from pathlib import Path
 
@@ -28,22 +30,23 @@ def copy_to_excel() -> None:
     filepath: Path = DATA_DIR / filename
     new_filename_stem: str = f"{filename_stem}-copy"
     new_filename: str = f"{new_filename_stem}.xlsx"
-    
+
     df: DataFrame = pd.read_csv(filepath)
     df.to_excel(DATA_DIR / f"{new_filename}", sheet_name=new_filename_stem, index=False)
-    print(f"{new_filename} created.")    
+    print(f"{new_filename} created.")
 
 
-def foo() -> None:
+def create_db() -> None:
     # Create database
-    pass
+    conn = sqlite3.connect("natrayn-imdbnatryan-imdb.db")
+    conn.close()
 
 
 def main() -> None:
     # download_files()
     # copy_to_excel()
-    
-    
+    # create_db()
+
     pass
 
 
