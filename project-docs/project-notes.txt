@@ -1,3 +1,0 @@
-
-morse-retail: "https://www.kaggle.com/datasets/tylermorse/retail-business-sales-20172019"
-natrayn-imdb: "https://www.kaggle.com/datasets/bharatnatrayn/movies-dataset-for-feature-extracion-prediction"
