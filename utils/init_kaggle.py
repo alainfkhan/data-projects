@@ -1,5 +1,6 @@
 import inspect
 import kaggle
+import os
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -56,5 +57,9 @@ def main(url: str) -> None:
 
     # dataset_files: Dict[str, list[Dict[str, str]]] = kaggle.api.dataset_list_files(dataset=handle)
     # print(f"Downloaded files: {dataset_files}")
+
+    # Copy all files from data/raw/
+    files_in_raw: list[str] = os.listdir(DATA_RAW_PATH)
+    
 
     pass
