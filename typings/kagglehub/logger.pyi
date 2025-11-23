@@ -1,7 +1,0 @@
-from _typeshed import Incomplete
-from kagglehub.config import get_log_verbosity as get_log_verbosity
-
-KAGGLE_LOGGING_ROOT_DIR_ENV_VAR_NAME: str
-KAGGLE_LOGGING_ENABLED_ENV_VAR_NAME: str
-EXTRA_FILE_BLOCK: Incomplete
-EXTRA_CONSOLE_BLOCK: Incomplete
