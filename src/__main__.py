@@ -2,14 +2,20 @@ import os
 from pathlib import Path
 
 import kaggle
+import nbformat as nbf
 import typer
 from icecream import ic
 from rich import print
 from urllib.parse import urlparse
 from requests.exceptions import HTTPError
 
-from src.utils.paths import PROJECTS_PATH
-from src.utils.util import mkdir_project, mkdir_data_folders, csv_to_excel
+from src.utils.paths import PROJECTS_DIR, PLAYGROUND_DIR
+from src.utils.util import (
+    random_string,
+    mkdir_project,
+    mkdir_data_folders,
+    csv_to_excel,
+)
 
 
 app = typer.Typer()
@@ -48,7 +54,7 @@ class KaggleProjectManager:
         self.handle = handle
 
     def init_kaggle(self) -> None:
-        project_path: Path = PROJECTS_PATH / self.project_name
+        project_path: Path = PROJECTS_DIR / self.project_name
 
         # Make project folder
         mkdir_project(self.project_name)
@@ -79,10 +85,79 @@ class KaggleProjectManager:
 
 
 @app.command()
-def test(
-    input: str = typer.Option("test", "-t", "--test", help="test message"),
+def init(
+    name: str = typer.Argument(
+        "_" + random_string(), help="Create a name for the project."
+    ),
+    playground: bool = typer.Option(
+        False, "-p", "--playground", help="Initialise the project in playground"
+    ),
+    force: bool = typer.Option(
+        False, "--force-overwrite", help="Force overwriting existing files."
+    ),
 ) -> None:
-    print("hello world")
+    home_dir = PLAYGROUND_DIR if playground else PROJECTS_DIR
+    new_project_dir = home_dir / name
+
+    # Create project directory
+    try:
+        new_project_dir.mkdir()
+        print(f"New folder: '{new_project_dir.name}'")
+    except FileExistsError:
+        print(f"File '{name}' in {home_dir} already exists.")
+        if force:
+            print("Overwriting initialisation files.")
+
+    # Create data folders
+    mkdir_data_folders(new_project_dir)
+
+    # Create default files
+
+    # Python notebook
+    project_files = os.listdir(new_project_dir)
+
+    nb_name = f"{name}.ipynb"
+    if nb_name not in project_files or force:
+        # Create new notebook
+        nb = nbf.v4.new_notebook()
+        nb["cells"].append(nbf.v4.new_code_cell())
+        with open(f"{new_project_dir}/{name}.ipynb", "w") as f:
+            nbf.write(nb, f)
+
+        print(f"New file: '{nb_name}'")
+
+    # README.md
+    readme = "README.md"
+    if readme not in project_files or force:
+        with open(f"{new_project_dir}/README.md", "w"):
+            pass
+
+        print(f"New file: '{readme}'")
+
+
+# @app.command()
+# def reinit() -> None:
+#     pass
+
+
+@app.command()
+def copy_files() -> None:
+    pass
+
+
+@app.command()
+def create_db() -> None:
+    pass
+
+
+@app.command()
+def download() -> None:
+    pass
+
+
+@app.command()
+def init_kaggle() -> None:
+    pass
 
 
 def main() -> None:

@@ -6,5 +6,6 @@ Do not include data folders generated from initialisation.
 from pathlib import Path
 
 
-SUPROJECT_PATH = Path(__file__).parent.parent.resolve()
-PROJECTS_PATH = SUPROJECT_PATH / "projects"
+BASE_DIR = Path(__file__).parent.parent.parent.resolve()
+PROJECTS_DIR = BASE_DIR / "projects"
+PLAYGROUND_DIR = BASE_DIR / "playground"
