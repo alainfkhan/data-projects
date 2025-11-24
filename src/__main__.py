@@ -99,9 +99,11 @@ def init(
     home_dir = PLAYGROUND_DIR if playground else PROJECTS_DIR
     new_project_dir = home_dir / name
 
+    
     # Create project directory
     try:
         new_project_dir.mkdir()
+        print(f"{home_dir}")
         print(f"New folder: '{new_project_dir.name}'")
     except FileExistsError:
         print(f"File '{name}' in {home_dir} already exists.")
@@ -112,10 +114,9 @@ def init(
     mkdir_data_folders(new_project_dir)
 
     # Create default files
-
-    # Python notebook
     project_files = os.listdir(new_project_dir)
 
+    # Python notebook
     nb_name = f"{name}.ipynb"
     if nb_name not in project_files or force:
         # Create new notebook
@@ -129,10 +130,18 @@ def init(
     # README.md
     readme = "README.md"
     if readme not in project_files or force:
-        with open(f"{new_project_dir}/README.md", "w"):
+        with open(f"{new_project_dir}/{readme}", "w"):
             pass
 
         print(f"New file: '{readme}'")
+
+    # Sources
+    sources = "sources.txt"
+    if sources not in project_files or force:
+        with open(f"{new_project_dir}/{sources}", "w"):
+            pass
+
+        print(f"New file: '{sources}'")
 
 
 # @app.command()
