@@ -9,7 +9,7 @@ from rich import print
 from urllib.parse import urlparse
 from requests.exceptions import HTTPError
 
-from src.utils.paths import PROJECTS_DIR, PLAYGROUND_DIR
+from src.utils.paths import PROJECTS_DIR, PLAYGROUND_DIR, BASE_DIR
 from src.utils.util import (
     random_string,
     mkdir_project,
@@ -17,6 +17,7 @@ from src.utils.util import (
     csv_to_excel,
 )
 
+lines = "-" * 30
 
 app = typer.Typer()
 
@@ -84,31 +85,36 @@ class KaggleProjectManager:
         pass
 
 
-@app.command()
+@app.command(help="Initialise a project.")
 def init(
     name: str = typer.Argument(
         "_" + random_string(), help="Create a name for the project."
     ),
     playground: bool = typer.Option(
-        False, "-p", "--playground", help="Initialise the project in playground"
+        False,
+        "-p",
+        "--playground",
+        help="Initialise the project in the playground directory.",
     ),
     force: bool = typer.Option(
-        False, "--force-overwrite", help="Force overwriting existing files."
+        False,
+        "--force-overwrite",
+        help="Forcefully overwriting existing initialisation files.",
     ),
 ) -> None:
     home_dir = PLAYGROUND_DIR if playground else PROJECTS_DIR
     new_project_dir = home_dir / name
 
-    
     # Create project directory
     try:
         new_project_dir.mkdir()
-        print(f"{home_dir}")
+        print(f"{home_dir.name}/")
         print(f"New folder: '{new_project_dir.name}'")
     except FileExistsError:
-        print(f"File '{name}' in {home_dir} already exists.")
         if force:
             print("Overwriting initialisation files.")
+        else:
+            print(f"File '{name}' in {home_dir} already exists.")
 
     # Create data folders
     mkdir_data_folders(new_project_dir)
@@ -144,13 +150,47 @@ def init(
         print(f"New file: '{sources}'")
 
 
-# @app.command()
-# def reinit() -> None:
-#     pass
+@app.command(help="List the projects.")
+def ls(
+    playground: bool = typer.Option(
+        False,
+        "-p",
+        "--playgound",
+        help="List the projects in the playground directory.",
+    ),
+) -> None:
+    folder: Path = PLAYGROUND_DIR if playground else PROJECTS_DIR
+    unwanted_chars = ("__", ".")
+
+    count: int = 0
+    dirs = os.listdir(folder)
+
+    print(lines)
+    for dir in dirs:
+        if dir.startswith(unwanted_chars):
+            continue
+
+        print(dir)
+        count += 1
+
+    print(lines)
+    print(f"[{count}] projects found in {folder.name}/")
+
+
+@app.command(help="Delete a project.")
+def rm(
+    name: str = typer.Argument(
+        help="Choose the name of the project you want to delete."
+    ),
+) -> None:
+    print(name)
+    pass
 
 
 @app.command()
-def copy_files() -> None:
+def copy_files(name: str = typer.Argument(help="")) -> None:
+    print(name)
+
     pass
 
 
