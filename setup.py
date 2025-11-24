@@ -7,4 +7,5 @@ setup(
     license="MIT",
     author="Alain Khan",
     packages=find_packages(),
+    entry_points={"console_scripts": ["dps = src.dps_launcher:main"]},
 )

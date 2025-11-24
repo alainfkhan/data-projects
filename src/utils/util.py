@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Dict
 
-from utils.paths import PROJECTS_PATH
+from src.utils.paths import PROJECTS_PATH
 
 
 data_folder_names: list[str] = ["raw", "interim", "processed", "external"]

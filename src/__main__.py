@@ -2,13 +2,17 @@ import os
 from pathlib import Path
 
 import kaggle
+import typer
 from icecream import ic
 from rich import print
 from urllib.parse import urlparse
 from requests.exceptions import HTTPError
 
-from utils.paths import PROJECTS_PATH
-from utils.util import mkdir_project, mkdir_data_folders, csv_to_excel
+from src.utils.paths import PROJECTS_PATH
+from src.utils.util import mkdir_project, mkdir_data_folders, csv_to_excel
+
+
+app = typer.Typer()
 
 
 class ProjectsManager:
@@ -74,22 +78,31 @@ class KaggleProjectManager:
         pass
 
 
+@app.command()
+def test(
+    input: str = typer.Option("test", "-t", "--test", help="test message"),
+) -> None:
+    print("hello world")
+
+
 def main() -> None:
-    # Developer entries:
-    init_kaggle_project: bool = False
-    kaggle_url: str = (
-        "https://www.kaggle.com/datasets/sticktogethertm/business-analysis-junior"
-    )
-    project_name: str = "panteleev-baj"
+    app()
+    # # Developer entries:
+    # init_kaggle_project: bool = False
+    # kaggle_url: str = (
+    #     "https://www.kaggle.com/datasets/sticktogethertm/business-analysis-junior"
+    # )
+    # project_name: str = "panteleev-baj"
 
-    copy_csv_files: bool = True
+    # print("running")
+    # copy_csv_files: bool = True
 
-    if init_kaggle_project:
-        kaggle_project_manager = KaggleProjectManager(kaggle_url, project_name)
-        print(f"Initialising kaggle project {kaggle_project_manager.handle}")
-        kaggle_project_manager.init_kaggle()
-        print("Initialisation complete.")
-        return
+    # if init_kaggle_project:
+    #     kaggle_project_manager = KaggleProjectManager(kaggle_url, project_name)
+    #     print(f"Initialising kaggle project {kaggle_project_manager.handle}")
+    #     kaggle_project_manager.init_kaggle()
+    #     print("Initialisation complete.")
+    #     return
 
 
 if __name__ == "__main__":
