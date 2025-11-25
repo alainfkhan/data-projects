@@ -1,4 +1,5 @@
 import os
+import shutil
 from pathlib import Path
 
 import kaggle
@@ -17,7 +18,7 @@ from src.utils.util import (
     csv_to_excel,
 )
 
-lines = "-" * 30
+lines = "-" * 40
 
 app = typer.Typer()
 
@@ -85,6 +86,25 @@ class KaggleProjectManager:
         pass
 
 
+def _find_projects(folder: Path) -> list[str]:
+    unwanted_chars = ("__", ".")
+
+    dirs = os.listdir(folder)
+    projects: list[str] = []
+
+    for dir in dirs:
+        if dir.startswith(unwanted_chars):
+            continue
+
+        projects.append(dir)
+    return projects
+
+
+def _get_project_dir(name: str, playground: bool = False) -> Path:
+    home_dir = PLAYGROUND_DIR if playground else PROJECTS_DIR
+    return home_dir / name
+
+
 @app.command(help="Initialise a project.")
 def init(
     name: str = typer.Argument(
@@ -99,11 +119,11 @@ def init(
     force: bool = typer.Option(
         False,
         "--force-overwrite",
-        help="Forcefully overwriting existing initialisation files.",
+        help="Forcefully overwrite existing initialisation files.",
     ),
 ) -> None:
-    home_dir = PLAYGROUND_DIR if playground else PROJECTS_DIR
-    new_project_dir = home_dir / name
+    new_project_dir = _get_project_dir(name, playground)
+    home_dir = new_project_dir.parent
 
     # Create project directory
     try:
@@ -119,8 +139,13 @@ def init(
     # Create data folders
     mkdir_data_folders(new_project_dir)
 
-    # Create default files
+    # Create docs/ and reports/ folder
+    (new_project_dir / "docs" / "assets").mkdir(parents=True, exist_ok=True)
+    (new_project_dir / "reports").mkdir(parents=True, exist_ok=True)
+
+    # Create default initialisation files
     project_files = os.listdir(new_project_dir)
+    docs_files = os.listdir(new_project_dir / "docs")
 
     # Python notebook
     nb_name = f"{name}.ipynb"
@@ -143,8 +168,8 @@ def init(
 
     # Sources
     sources = "sources.txt"
-    if sources not in project_files or force:
-        with open(f"{new_project_dir}/{sources}", "w"):
+    if sources not in docs_files or force:
+        with open(f"{new_project_dir}/docs/{sources}", "w"):
             pass
 
         print(f"New file: '{sources}'")
@@ -158,33 +183,64 @@ def ls(
         "--playgound",
         help="List the projects in the playground directory.",
     ),
+    all: bool = typer.Option(
+        False, "--all", help="List all project files in both directories."
+    ),
 ) -> None:
+    if all:
+        projects: list[str] = _find_projects(PROJECTS_DIR)
+        playground_projects: list[str] = _find_projects(PLAYGROUND_DIR)
+
+        total: int = len(projects) + len(playground_projects)
+
+        print(f"[{total}] total projects found")
+        print(lines)
+        for name in sorted(playground_projects):
+            print("playground/      ", end="")
+            print(name)
+       
+        print("") 
+        for name in sorted(projects):
+            print("projects/        ", end="")
+            print(name)
+        return
+    
+
     folder: Path = PLAYGROUND_DIR if playground else PROJECTS_DIR
-    unwanted_chars = ("__", ".")
 
-    count: int = 0
-    dirs = os.listdir(folder)
+    projects = _find_projects(folder)
 
+    print(f"[{len(projects)}] projects found in {folder.name}/")
     print(lines)
-    for dir in dirs:
-        if dir.startswith(unwanted_chars):
-            continue
-
-        print(dir)
-        count += 1
-
-    print(lines)
-    print(f"[{count}] projects found in {folder.name}/")
+    for name in sorted(projects):
+        print(name)
 
 
 @app.command(help="Delete a project.")
 def rm(
-    name: str = typer.Argument(
-        help="Choose the name of the project you want to delete."
+    # playground: bool = typer.Option(
+    #     False, "-p", "--playground", help="Remove a file in the playground directory."
+    # ),
+    folders: list[str] = typer.Argument(
+        help="List the names of the projects you want to remove."
+    ),
+    playground: bool = typer.Option(
+        False, "-p", "--playground", help="Remove projects in the playground directory."
     ),
 ) -> None:
-    print(name)
-    pass
+    print(folders)
+
+    for name in folders:
+        folder_dir = _get_project_dir(name, playground)
+        print(folder_dir)
+
+        try:
+            shutil.rmtree(folder_dir)
+            print(f"Removed {folder_dir.name} inside {folder_dir.parent}/.")
+        except FileNotFoundError:
+            print(f"Project: {folder_dir.name} does not exist in {folder_dir.parent}/.")
+        
+
 
 
 @app.command()
