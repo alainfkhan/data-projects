@@ -1,4 +1,5 @@
 import os
+import re
 import shutil
 from pathlib import Path
 
@@ -6,9 +7,9 @@ import kaggle
 import nbformat as nbf
 import typer
 from icecream import ic
+from requests.exceptions import HTTPError
 from rich import print
 from urllib.parse import urlparse
-from requests.exceptions import HTTPError
 
 from src.utils.paths import PROJECTS_DIR, PLAYGROUND_DIR, BASE_DIR
 from src.utils.util import (
@@ -86,17 +87,25 @@ class KaggleProjectManager:
         pass
 
 
-def _find_projects(folder: Path) -> list[str]:
-    unwanted_chars = ("__", ".")
+def _find_projects(home: Path = PROJECTS_DIR, randoms_only: bool = False) -> list[str]:
+    unwanted_strs = ("__", ".")
 
-    dirs = os.listdir(folder)
+    dirs = os.listdir(home)
     projects: list[str] = []
+    randoms: list[str] = []
 
     for dir in dirs:
-        if dir.startswith(unwanted_chars):
+        if dir.startswith(unwanted_strs):
             continue
 
+        if dir.startswith("_"):
+            randoms.append(dir)
+
         projects.append(dir)
+
+    if randoms_only:
+        return randoms
+
     return projects
 
 
@@ -123,18 +132,18 @@ def init(
     ),
 ) -> None:
     new_project_dir = _get_project_dir(name, playground)
-    home_dir = new_project_dir.parent
+    home = new_project_dir.parent
 
     # Create project directory
     try:
         new_project_dir.mkdir()
-        print(f"{home_dir.name}/")
+        print(f"{home.name}/")
         print(f"New folder: '{new_project_dir.name}'")
     except FileExistsError:
         if force:
             print("Overwriting initialisation files.")
         else:
-            print(f"File '{name}' in {home_dir} already exists.")
+            print(f"File '{name}' in {home} already exists.")
 
     # Create data folders
     mkdir_data_folders(new_project_dir)
@@ -188,7 +197,7 @@ def ls(
     ),
 ) -> None:
     if all:
-        projects: list[str] = _find_projects(PROJECTS_DIR)
+        projects: list[str] = _find_projects()
         playground_projects: list[str] = _find_projects(PLAYGROUND_DIR)
 
         total: int = len(projects) + len(playground_projects)
@@ -198,19 +207,17 @@ def ls(
         for name in sorted(playground_projects):
             print("playground/      ", end="")
             print(name)
-       
-        print("") 
+
+        print("")
         for name in sorted(projects):
             print("projects/        ", end="")
             print(name)
         return
-    
 
-    folder: Path = PLAYGROUND_DIR if playground else PROJECTS_DIR
+    home: Path = PLAYGROUND_DIR if playground else PROJECTS_DIR
+    projects = _find_projects(home)
 
-    projects = _find_projects(folder)
-
-    print(f"[{len(projects)}] projects found in {folder.name}/")
+    print(f"[{len(projects)}] projects found in {home.name}/")
     print(lines)
     for name in sorted(projects):
         print(name)
@@ -218,33 +225,67 @@ def ls(
 
 @app.command(help="Delete a project.")
 def rm(
-    # playground: bool = typer.Option(
-    #     False, "-p", "--playground", help="Remove a file in the playground directory."
-    # ),
-    folders: list[str] = typer.Argument(
-        help="List the names of the projects you want to remove."
+    folders: list[str] | None = typer.Argument(
+        None, help="The names of the projects you want to remove."
     ),
     playground: bool = typer.Option(
         False, "-p", "--playground", help="Remove projects in the playground directory."
     ),
+    randoms: bool = typer.Option(
+        False, "--randoms", help="Delete projects that were randomly generated."
+    ),
+    all_randoms: bool = typer.Option(
+        False,
+        "--all-randoms",
+        help="Delete random projects in the projects/ and playground/ directories.",
+    ),
 ) -> None:
-    print(folders)
+    if folders is None:
+        folders = []
+
+    home = PLAYGROUND_DIR if playground else PROJECTS_DIR
+
+    if randoms and all_randoms:
+        raise ValueError("Must have either --randoms or --all-randoms but not both.")
+
+    if randoms:
+        random_projects = _find_projects(home, randoms_only=randoms)
+        folders = folders + random_projects
+
+    if all_randoms:
+        random_projects = _find_projects(randoms_only=True)
+        random_playground_projects = _find_projects(PLAYGROUND_DIR, randoms_only=True)
+        all_random_projects = random_projects + random_playground_projects
+
+        folders = folders + all_random_projects
+
+    # TODO: fix parents
 
     for name in folders:
         folder_dir = _get_project_dir(name, playground)
-        print(folder_dir)
 
         try:
             shutil.rmtree(folder_dir)
-            print(f"Removed {folder_dir.name} inside {folder_dir.parent}/.")
+            # print(f"Removed: {folder_dir.parent.name}/{folder_dir.name}")
         except FileNotFoundError:
-            print(f"Project: {folder_dir.name} does not exist in {folder_dir.parent}/.")
-        
+            print(
+                f"Project: {folder_dir.name} does not exist inside {folder_dir.parent.name}/."
+            )
+            return
 
+
+@app.command(help="Move a project from projects/ to playground/")
+def demote() -> None:
+    pass
+
+
+@app.command(help="Move a project from playground/ to projects/")
+def promote() -> None:
+    pass
 
 
 @app.command()
-def copy_files(name: str = typer.Argument(help="")) -> None:
+def copy_data_files(name: str = typer.Argument(help="")) -> None:
     print(name)
 
     pass
@@ -262,6 +303,11 @@ def download() -> None:
 
 @app.command()
 def init_kaggle() -> None:
+    pass
+
+
+@app.command(help="Begin working on the main file to start analysis.")
+def begin() -> None:
     pass
 
 
