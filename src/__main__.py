@@ -20,6 +20,7 @@ from src.utils.util import (
 )
 
 lines = "-" * 40
+unwanted_strs = ("__", ".")
 
 app = typer.Typer()
 
@@ -87,24 +88,45 @@ class KaggleProjectManager:
         pass
 
 
-def _find_projects(home: Path = PROJECTS_DIR, randoms_only: bool = False) -> list[str]:
-    unwanted_strs = ("__", ".")
-
+def _find_projects(home: Path = PROJECTS_DIR, temps_only: bool = False) -> list[str]:
     dirs = os.listdir(home)
     projects: list[str] = []
-    randoms: list[str] = []
+    temps: list[str] = []
 
     for dir in dirs:
         if dir.startswith(unwanted_strs):
             continue
 
-        if dir.startswith("_"):
-            randoms.append(dir)
+        if dir.startswith("~"):
+            temps.append(dir)
 
         projects.append(dir)
 
-    if randoms_only:
-        return randoms
+    if temps_only:
+        return temps
+
+    return projects
+
+
+def _find_project_dirs(
+    home: Path = PROJECTS_DIR, temps_only: bool = False
+) -> list[Path]:
+    dir_names: list[str] = os.listdir(home)
+
+    projects: list[Path] = []
+    temps: list[Path] = []
+
+    for dir_name in dir_names:
+        if dir_name.startswith(unwanted_strs):
+            continue
+
+        if dir_name.startswith("~"):
+            temps.append(home / dir_name)
+
+        projects.append(home / dir_name)
+
+    if temps_only:
+        return temps
 
     return projects
 
@@ -117,7 +139,7 @@ def _get_project_dir(name: str, playground: bool = False) -> Path:
 @app.command(help="Initialise a project.")
 def init(
     name: str = typer.Argument(
-        "_" + random_string(), help="Create a name for the project."
+        "~" + random_string(), help="Create a name for the project."
     ),
     playground: bool = typer.Option(
         False,
@@ -138,7 +160,7 @@ def init(
     try:
         new_project_dir.mkdir()
         print(f"{home.name}/")
-        print(f"New folder: '{new_project_dir.name}'")
+        print(f"New project: '{new_project_dir.name}'")
     except FileExistsError:
         if force:
             print("Overwriting initialisation files.")
@@ -192,35 +214,50 @@ def ls(
         "--playgound",
         help="List the projects in the playground directory.",
     ),
+    temps: bool = typer.Option(
+        False,
+        "--temps",
+        help="List temporary projects."
+    ),
     all: bool = typer.Option(
         False, "--all", help="List all project files in both directories."
     ),
+    all_temps: bool = typer.Option(
+        False, "--all-temps", help="List all temporary projects generated randomly."
+    ),
 ) -> None:
+    
+    if all_temps:
+        all: bool = True
+        temps_only: bool = True
+    else:
+        temps_only = False
+          
     if all:
-        projects: list[str] = _find_projects()
-        playground_projects: list[str] = _find_projects(PLAYGROUND_DIR)
+        projects: list[Path] = _find_project_dirs(temps_only=temps_only)
+        playground_projects: list[Path] = _find_project_dirs(PLAYGROUND_DIR, temps_only=temps_only)
 
         total: int = len(projects) + len(playground_projects)
 
-        print(f"[{total}] total projects found")
+        print(f"[{total}] total {"temporary " if temps_only else ""}projects found")
         print(lines)
-        for name in sorted(playground_projects):
+        for dir in sorted(playground_projects):
             print("playground/      ", end="")
-            print(name)
+            print(dir.name)
 
         print("")
-        for name in sorted(projects):
+        for dir in sorted(projects):
             print("projects/        ", end="")
-            print(name)
+            print(dir.name)
         return
 
     home: Path = PLAYGROUND_DIR if playground else PROJECTS_DIR
-    projects = _find_projects(home)
+    projects = _find_project_dirs(home)
 
     print(f"[{len(projects)}] projects found in {home.name}/")
     print(lines)
-    for name in sorted(projects):
-        print(name)
+    for dir in sorted(projects):
+        print(dir.name)
 
 
 @app.command(help="Delete a project.")
@@ -231,13 +268,13 @@ def rm(
     playground: bool = typer.Option(
         False, "-p", "--playground", help="Remove projects in the playground directory."
     ),
-    randoms: bool = typer.Option(
-        False, "--randoms", help="Delete projects that were randomly generated."
+    temps: bool = typer.Option(
+        False, "--temps", help="Delete temporary projects that were randomly generated."
     ),
-    all_randoms: bool = typer.Option(
+    all_temps: bool = typer.Option(
         False,
-        "--all-randoms",
-        help="Delete random projects in the projects/ and playground/ directories.",
+        "--all-temps",
+        help="Delete all temporary projects.",
     ),
 ) -> None:
     if folders is None:
@@ -245,19 +282,19 @@ def rm(
 
     home = PLAYGROUND_DIR if playground else PROJECTS_DIR
 
-    if randoms and all_randoms:
-        raise ValueError("Must have either --randoms or --all-randoms but not both.")
+    if temps and all_temps:
+        raise ValueError("Must have either --temps or --all-temps but not both.")
 
-    if randoms:
-        random_projects = _find_projects(home, randoms_only=randoms)
-        folders = folders + random_projects
+    if temps:
+        temp_projects = _find_projects(home, temps_only=temps)
+        folders = folders + temp_projects
 
-    if all_randoms:
-        random_projects = _find_projects(randoms_only=True)
-        random_playground_projects = _find_projects(PLAYGROUND_DIR, randoms_only=True)
-        all_random_projects = random_projects + random_playground_projects
+    if all_temps:
+        temp_projects = _find_projects(temps_only=True)
+        temp_playground_projects = _find_projects(PLAYGROUND_DIR, temps_only=True)
+        all_temp_projects = temp_projects + temp_playground_projects
 
-        folders = folders + all_random_projects
+        folders = folders + all_temp_projects
 
     # TODO: fix parents
 
@@ -302,7 +339,7 @@ def download() -> None:
 
 
 @app.command()
-def init_kaggle() -> None:
+def init_kaggle(url: str = typer.Argument()) -> None:
     pass
 
 
