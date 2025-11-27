@@ -90,8 +90,33 @@ class KaggleProjectManager:
         print("The dataset has been succefully downloaded")
         return
 
+    def download_to(self, project: Path) -> None:
+        raw_path: Path = project / "data" / "raw"
+        external_path: Path = project / "data" / "external"
+
+        kaggle.api.authenticate()
+
+        try:
+            kaggle.api.dataset_download_files(
+                dataset=self.handle, path=raw_path, unzip=True
+            )
+        except HTTPError as e:
+            print(e)
+            print("Kaggle dataset not found. Verify the kaggle URL is correct.")
+        else:
+            kaggle.api.dataset_metadata(dataset=self.handle, path=external_path)
+
+        print("The dataset has been successfully downloaded.")
+
+        pass
+
     def copy_all_files(self) -> None:
         pass
+
+
+# ======================================================================
+# HELPER FUNCTIONS
+# ======================================================================
 
 
 def _find_project_dirs(
@@ -209,18 +234,25 @@ def init_kaggle(url: str = typer.Argument()) -> None:
 
 
 @app.command()
-def download(
+def dl(
     name: str = typer.Argument(help="Download the dataset in this project."),
     playground: bool = typer.Option(
         False, "-p", "--playground", help="The project lives here."
     ),
-    kaggle_url: str = typer.Option(
+    kaggle_url: str | None = typer.Option(
         "", "-ku", "--kaggle-url", help="Download dataset from kaggle url."
     ),
 ) -> None:
+    home: Path = PLAYGROUND_DIR if playground else PROJECTS_DIR
+
+    if home / name not in _find_project_dirs(home):
+        raise FileNotFoundError(
+            f"Project: '{name}' not found{' in playground' if playground else ''}."
+        )
+
     if kaggle_url:
         kaggle_pm = KaggleProjectManager(kaggle_url, name)
-        print(kaggle_pm.handle)
+        kaggle_pm.download_to(home / name)
 
 
 @app.command()
