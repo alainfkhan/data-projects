@@ -41,11 +41,11 @@ class ProjectsManager:
 class KaggleProjectManager:
     valid_kaggle_url = "www.kaggle.com"
 
-    def is_kaggle_url(self, url: str) -> bool:
+    def _is_kaggle_url(self, url: str) -> bool:
         parsed_url = urlparse(url=url)
         return parsed_url.netloc == self.valid_kaggle_url
 
-    def get_handle_from_url(self) -> str:
+    def _get_handle_from_url(self) -> str:
         """https://www.kaggle.com/datasets/johnsmith/somedataset/data -> johnsmith/somedataset"""
 
         handle: str = self.kaggle_url.removeprefix(
@@ -54,13 +54,13 @@ class KaggleProjectManager:
         return handle
 
     def __init__(self, kaggle_url: str, project_name: str) -> None:
-        if not self.is_kaggle_url(kaggle_url):
+        if not self._is_kaggle_url(kaggle_url):
             raise ValueError("Not a valid kaggle url.")
 
         self.kaggle_url = kaggle_url
         self.project_name = project_name
 
-        handle = self.get_handle_from_url()
+        handle = self._get_handle_from_url()
         self.handle = handle
 
     def init_kaggle(self) -> None:
@@ -92,27 +92,6 @@ class KaggleProjectManager:
 
     def copy_all_files(self) -> None:
         pass
-
-
-def _find_projects(home: Path = PROJECTS_DIR, temps_only: bool = False) -> list[str]:
-    """WANT TO DEPRECATE"""
-    dirs = os.listdir(home)
-    projects: list[str] = []
-    temps: list[str] = []
-
-    for dir in dirs:
-        if dir.startswith(unwanted_strs):
-            continue
-
-        if dir.startswith("~"):
-            temps.append(dir)
-
-        projects.append(dir)
-
-    if temps_only:
-        return temps
-
-    return projects
 
 
 def _find_project_dirs(
@@ -149,6 +128,9 @@ def _get_project_dir(name: str, playground: bool = False) -> Path:
     return home_dir / name
 
 
+# ================================================================================
+# CREATE
+# ================================================================================
 @app.command(help="Initialise a project.")
 def init(
     name: str = typer.Argument(
@@ -221,6 +203,36 @@ def init(
         # print(f"New file: '{sources}'")
 
 
+@app.command()
+def init_kaggle(url: str = typer.Argument()) -> None:
+    pass
+
+
+@app.command()
+def download(
+    name: str = typer.Argument(help="Download the dataset in this project."),
+    playground: bool = typer.Option(
+        False, "-p", "--playground", help="The project lives here."
+    ),
+    kaggle_url: str = typer.Option(
+        "", "-ku", "--kaggle-url", help="Download dataset from kaggle url."
+    ),
+) -> None:
+    if kaggle_url:
+        kaggle_pm = KaggleProjectManager(kaggle_url, name)
+        print(kaggle_pm.handle)
+
+
+@app.command()
+def create_db() -> None:
+    pass
+
+
+# ================================================================================
+# READ
+# ================================================================================
+
+
 @app.command(help="List projects.")
 def ls(
     playground: bool = typer.Option(
@@ -282,13 +294,43 @@ def ls(
 
     print(count_message(count))
 
-    table = df_to_table(df)
-    console = Console()
-    console.print(table)
+    if count > 0:
+        table = df_to_table(df)
+        console = Console()
+        console.print(table)
 
     return
 
 
+@app.command()
+def read_data_files() -> None:
+    pass
+
+
+# ================================================================================
+# UPDATE
+# ================================================================================
+
+
+@app.command(help="Move a project from playground/ to projects/")
+def promote() -> None:
+    pass
+
+
+@app.command(help="Move a project from projects/ to playground/")
+def demote() -> None:
+    pass
+
+
+@app.command()
+def copy_data_files(name: str = typer.Argument(help="")) -> None:
+    print(name)
+    pass
+
+
+# ================================================================================
+#  DELETE
+# ================================================================================
 @app.command(help="Delete a project.")
 def rm(
     project_names: list[str] | None = typer.Argument(
@@ -343,37 +385,6 @@ def rm(
         except FileNotFoundError:
             print(f"Project: '{f.name}' does not exist inside {f.parent.name}/.")
             pass
-
-
-@app.command(help="Move a project from projects/ to playground/")
-def demote() -> None:
-    pass
-
-
-@app.command(help="Move a project from playground/ to projects/")
-def promote() -> None:
-    pass
-
-
-@app.command()
-def copy_data_files(name: str = typer.Argument(help="")) -> None:
-    print(name)
-    pass
-
-
-@app.command()
-def create_db() -> None:
-    pass
-
-
-@app.command()
-def download() -> None:
-    pass
-
-
-@app.command()
-def init_kaggle(url: str = typer.Argument()) -> None:
-    pass
 
 
 @app.command(help="Begin working on the main file to start analysis.")
