@@ -52,12 +52,12 @@ def df_to_table(df: DataFrame) -> Table:
 
     col_names: list[str] = list(df.columns)
     table = Table()
-    
+
     for col in col_names:
         table.add_column(col)
-        
+
     for row_tuple in df.itertuples(index=False):
-        row_list = [str(x) for x in row_tuple] 
+        row_list = [str(x) for x in row_tuple]
         table.add_row(*row_list)
 
     return table

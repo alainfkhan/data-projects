@@ -22,7 +22,7 @@ from src.utils.util import (
     mkdir_project,
     mkdir_data_folders,
     csv_to_excel,
-    df_to_table
+    df_to_table,
 )
 
 lines = "-" * 40
@@ -119,7 +119,7 @@ def _find_project_dirs(
     home: Path = PROJECTS_DIR, temps_only: bool = False, non_temps_only: bool = False
 ) -> set[Path]:
     dir_names: list[str] = os.listdir(home)
-    
+
     projects: set[Path] = set()
     temps: set[Path] = set()
 
@@ -168,18 +168,19 @@ def init(
 ) -> None:
     new_project_dir = _get_project_dir(name, playground)
     home = new_project_dir.parent
+    p_option = f"{' in playground' if playground else ''}"
 
     # Create project directory
     try:
         new_project_dir.mkdir()
-        print(
-            f"New project: '{new_project_dir.name}'{' in playground' if playground else ''}"
-        )
+        print(f"Initialised new project: '{new_project_dir.name}'{p_option}.")
     except FileExistsError:
         if force:
-            print("Overwriting initialisation files.")
+            print(
+                f"Overwriting initialisation files for project: '{new_project_dir.name}'{p_option}."
+            )
         else:
-            print(f"File '{name}' in {home} already exists.")
+            print(f"Project '{name}' in {home} already exists.")
 
     # Create data folders
     mkdir_data_folders(new_project_dir)
@@ -201,7 +202,7 @@ def init(
         with open(f"{new_project_dir}/{name}.ipynb", "w") as f:
             nbf.write(nb, f)
 
-        print(f"New file: '{nb_name}'")
+        # print(f"New file: '{nb_name}'")
 
     # README.md
     readme = "README.md"
@@ -209,7 +210,7 @@ def init(
         with open(f"{new_project_dir}/{readme}", "w"):
             pass
 
-        print(f"New file: '{readme}'")
+        # print(f"New file: '{readme}'")
 
     # Sources
     sources = "sources.txt"
@@ -217,7 +218,7 @@ def init(
         with open(f"{new_project_dir}/docs/{sources}", "w"):
             pass
 
-        print(f"New file: '{sources}'")
+        # print(f"New file: '{sources}'")
 
 
 @app.command(help="List projects.")
@@ -228,20 +229,26 @@ def ls(
         "--playgound",
         help="List the projects in the playground.",
     ),
-    temps: bool = typer.Option(
-        False, "-t", "--temps", help="List temporary-only projects."
-    ),
+    temps: bool = typer.Option(False, "-t", "--temps", help="List temporary projects."),
     non_temps: bool = typer.Option(
-        False, "-nt", "--non-temps", help="List non-temporary-only projects."
+        False, "-nt", "--non-temps", help="List non-temporary projects."
     ),
     show_all: bool = typer.Option(False, "--all", help="List all projects."),
+    show_all_temps: bool = typer.Option(
+        False, "--all-temps", help="List all temporary files."
+    ),
 ) -> None:
     def count_message(count: int) -> str:
         message = f"[{count}] {'temporary ' if temps else ''}projects found{' in playground' if playground else ''}."
         return message
 
-    
-    projects: set[Path] = _find_project_dirs(temps_only=temps, non_temps_only=non_temps)
+    if show_all_temps:
+        show_all = True
+        temps = True
+
+    projects: set[Path] = _find_project_dirs(
+        PROJECTS_DIR, temps_only=temps, non_temps_only=non_temps
+    )
     p_projects: set[Path] = _find_project_dirs(
         PLAYGROUND_DIR, temps_only=temps, non_temps_only=non_temps
     )
@@ -252,8 +259,7 @@ def ls(
     # 0 for projects, 1 for playground projects.
 
     df_projects = pd.DataFrame(
-        sorted([project.name for project in projects]),
-        columns=["Projects"]
+        sorted([project.name for project in projects]), columns=["Projects"]
     )
     df_playground_projects = pd.DataFrame(
         sorted([project.name for project in p_projects]),
@@ -261,7 +267,6 @@ def ls(
     )
 
     df = pd.concat([df_projects, df_playground_projects], axis=1)
-
     df = df.fillna("")
 
     if show_all:
@@ -269,17 +274,15 @@ def ls(
     else:
         if playground:
             df = df_playground_projects
-            count = len(df)
         else:
             df = df_projects
-            count = len(df)
+        count = len(df)
 
-    # df either a DataFrame or Series 
-
-    table = df_to_table(df)
+    # df either a DataFrame or Series
 
     print(count_message(count))
-    
+
+    table = df_to_table(df)
     console = Console()
     console.print(table)
 
@@ -288,14 +291,17 @@ def ls(
 
 @app.command(help="Delete a project.")
 def rm(
-    folders: list[str] | None = typer.Argument(
+    project_names: list[str] | None = typer.Argument(
         None, help="The names of the projects you want to remove."
     ),
     playground: bool = typer.Option(
-        False, "-p", "--playground", help="Remove projects in the playground directory."
+        False,
+        "-p",
+        "--playground",
+        help="Delete projects from the playground directory.",
     ),
     temps: bool = typer.Option(
-        False, "--temps", help="Delete temporary projects that were randomly generated."
+        False, "-t", "--temps", help="Delete temporary projects."
     ),
     all_temps: bool = typer.Option(
         False,
@@ -303,38 +309,40 @@ def rm(
         help="Delete all temporary projects.",
     ),
 ) -> None:
-    if folders is None:
-        folders = []
-
-    home = PLAYGROUND_DIR if playground else PROJECTS_DIR
-
-    if temps and all_temps:
-        raise ValueError("Must have either --temps or --all-temps but not both.")
-
-    if temps:
-        temp_projects = _find_projects(home, temps_only=temps)
-        folders = folders + temp_projects
+    if project_names is None:
+        project_names = []
 
     if all_temps:
-        temp_projects = _find_projects(temps_only=True)
-        temp_playground_projects = _find_projects(PLAYGROUND_DIR, temps_only=True)
-        all_temp_projects = temp_projects + temp_playground_projects
+        temps = True
 
-        folders = folders + all_temp_projects
+    home: Path = PLAYGROUND_DIR if playground else PROJECTS_DIR
 
-    # TODO: fix parents
+    to_delete: set[Path] = set([home / name for name in project_names])
 
-    for name in folders:
-        folder_dir = _get_project_dir(name, playground)
+    projects = _find_project_dirs(PROJECTS_DIR, temps_only=temps)
+    p_projects = _find_project_dirs(PLAYGROUND_DIR, temps_only=temps)
 
+    if playground:
+        varset = p_projects
+    else:
+        varset = projects
+
+    if all_temps:
+        to_delete = to_delete.union(projects).union(p_projects)
+
+    if temps:
+        to_delete = to_delete.union(varset)
+
+    if len(to_delete) == 0:
+        raise ValueError("Requires files to delete.")
+
+    for f in to_delete:
         try:
-            shutil.rmtree(folder_dir)
-            # print(f"Removed: {folder_dir.parent.name}/{folder_dir.name}")
+            shutil.rmtree(f)
+            # print(f"Removed: {f.parent.name}/{f.name}.")
         except FileNotFoundError:
-            print(
-                f"Project: {folder_dir.name} does not exist inside {folder_dir.parent.name}/."
-            )
-            return
+            print(f"Project: '{f.name}' does not exist inside {f.parent.name}/.")
+            pass
 
 
 @app.command(help="Move a project from projects/ to playground/")
@@ -350,7 +358,6 @@ def promote() -> None:
 @app.command()
 def copy_data_files(name: str = typer.Argument(help="")) -> None:
     print(name)
-
     pass
 
 
