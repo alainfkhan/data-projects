@@ -2,13 +2,18 @@ import os
 import re
 import shutil
 from pathlib import Path
+from typing import Set
 
 import kaggle
 import nbformat as nbf
+import pandas as pd
 import typer
 from icecream import ic
+from pandas import DataFrame, Series
 from requests.exceptions import HTTPError
 from rich import print
+from rich.console import Console
+from rich.table import Table
 from urllib.parse import urlparse
 
 from src.utils.paths import PROJECTS_DIR, PLAYGROUND_DIR, BASE_DIR
@@ -17,6 +22,7 @@ from src.utils.util import (
     mkdir_project,
     mkdir_data_folders,
     csv_to_excel,
+    df_to_table
 )
 
 lines = "-" * 40
@@ -89,6 +95,7 @@ class KaggleProjectManager:
 
 
 def _find_projects(home: Path = PROJECTS_DIR, temps_only: bool = False) -> list[str]:
+    """WANT TO DEPRECATE"""
     dirs = os.listdir(home)
     projects: list[str] = []
     temps: list[str] = []
@@ -109,24 +116,30 @@ def _find_projects(home: Path = PROJECTS_DIR, temps_only: bool = False) -> list[
 
 
 def _find_project_dirs(
-    home: Path = PROJECTS_DIR, temps_only: bool = False
-) -> list[Path]:
+    home: Path = PROJECTS_DIR, temps_only: bool = False, non_temps_only: bool = False
+) -> set[Path]:
     dir_names: list[str] = os.listdir(home)
-
-    projects: list[Path] = []
-    temps: list[Path] = []
+    
+    projects: set[Path] = set()
+    temps: set[Path] = set()
 
     for dir_name in dir_names:
         if dir_name.startswith(unwanted_strs):
             continue
 
         if dir_name.startswith("~"):
-            temps.append(home / dir_name)
+            temps.add(home / dir_name)
 
-        projects.append(home / dir_name)
+        projects.add(home / dir_name)
+
+    if temps_only and non_temps_only:
+        return projects
 
     if temps_only:
         return temps
+
+    if non_temps_only:
+        return projects - temps
 
     return projects
 
@@ -159,8 +172,9 @@ def init(
     # Create project directory
     try:
         new_project_dir.mkdir()
-        print(f"{home.name}/")
-        print(f"New project: '{new_project_dir.name}'")
+        print(
+            f"New project: '{new_project_dir.name}'{' in playground' if playground else ''}"
+        )
     except FileExistsError:
         if force:
             print("Overwriting initialisation files.")
@@ -206,58 +220,70 @@ def init(
         print(f"New file: '{sources}'")
 
 
-@app.command(help="List the projects.")
+@app.command(help="List projects.")
 def ls(
     playground: bool = typer.Option(
         False,
         "-p",
         "--playgound",
-        help="List the projects in the playground directory.",
+        help="List the projects in the playground.",
     ),
     temps: bool = typer.Option(
-        False,
-        "--temps",
-        help="List temporary projects."
+        False, "-t", "--temps", help="List temporary-only projects."
     ),
-    all: bool = typer.Option(
-        False, "--all", help="List all project files in both directories."
+    non_temps: bool = typer.Option(
+        False, "-nt", "--non-temps", help="List non-temporary-only projects."
     ),
-    all_temps: bool = typer.Option(
-        False, "--all-temps", help="List all temporary projects generated randomly."
-    ),
+    show_all: bool = typer.Option(False, "--all", help="List all projects."),
 ) -> None:
+    def count_message(count: int) -> str:
+        message = f"[{count}] {'temporary ' if temps else ''}projects found{' in playground' if playground else ''}."
+        return message
+
     
-    if all_temps:
-        all: bool = True
-        temps_only: bool = True
+    projects: set[Path] = _find_project_dirs(temps_only=temps, non_temps_only=non_temps)
+    p_projects: set[Path] = _find_project_dirs(
+        PLAYGROUND_DIR, temps_only=temps, non_temps_only=non_temps
+    )
+
+    total_projects: list[Path] = sorted(projects) + sorted(p_projects)
+    # Always in the order: projects, playground projects.
+    # Playground projects are always secondary.
+    # 0 for projects, 1 for playground projects.
+
+    df_projects = pd.DataFrame(
+        sorted([project.name for project in projects]),
+        columns=["Projects"]
+    )
+    df_playground_projects = pd.DataFrame(
+        sorted([project.name for project in p_projects]),
+        columns=["Playground"],
+    )
+
+    df = pd.concat([df_projects, df_playground_projects], axis=1)
+
+    df = df.fillna("")
+
+    if show_all:
+        count = len(total_projects)
     else:
-        temps_only = False
-          
-    if all:
-        projects: list[Path] = _find_project_dirs(temps_only=temps_only)
-        playground_projects: list[Path] = _find_project_dirs(PLAYGROUND_DIR, temps_only=temps_only)
+        if playground:
+            df = df_playground_projects
+            count = len(df)
+        else:
+            df = df_projects
+            count = len(df)
 
-        total: int = len(projects) + len(playground_projects)
+    # df either a DataFrame or Series 
 
-        print(f"[{total}] total {"temporary " if temps_only else ""}projects found")
-        print(lines)
-        for dir in sorted(playground_projects):
-            print("playground/      ", end="")
-            print(dir.name)
+    table = df_to_table(df)
 
-        print("")
-        for dir in sorted(projects):
-            print("projects/        ", end="")
-            print(dir.name)
-        return
+    print(count_message(count))
+    
+    console = Console()
+    console.print(table)
 
-    home: Path = PLAYGROUND_DIR if playground else PROJECTS_DIR
-    projects = _find_project_dirs(home)
-
-    print(f"[{len(projects)}] projects found in {home.name}/")
-    print(lines)
-    for dir in sorted(projects):
-        print(dir.name)
+    return
 
 
 @app.command(help="Delete a project.")
