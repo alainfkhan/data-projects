@@ -1,5 +1,6 @@
 import os
 import re
+import subprocess
 import shutil
 from pathlib import Path
 from typing import Set
@@ -159,12 +160,20 @@ def _get_project_dir(name: str, playground: bool = False) -> Path:
     return home_dir / name
 
 
-def validate_project(home: Path, name: str, playground: bool) -> None:
+def validate_project_old(home: Path, name: str, playground: bool) -> None:
     if home / name not in _find_project_dirs(home):
         raise FileNotFoundError(
             f"Project: '{name}' not found{' in playground' if playground else ''}."
         )
     pass
+
+
+def validate_project(project: Path, playground: bool = False) -> None:
+    home = project.parent
+    if project not in _find_project_dirs(home=home):
+        raise FileNotFoundError(
+            f"Project: '{project.name}' not found{' in playground' if playground else ''}."
+        )
 
 
 # TODO: complete
@@ -293,8 +302,10 @@ def dl(
     ),
 ) -> None:
     home: Path = PLAYGROUND_DIR if playground else PROJECTS_DIR
+    this_project = _get_project_dir(name=name, playground=playground)
 
-    validate_project(home=home, name=name, playground=playground)
+    # validate_project_old(home=home, name=name, playground=playground)
+    validate_project(project=this_project, playground=playground)
     # if home / name not in _find_project_dirs(home):
     #     raise FileNotFoundError(
     #         f"Project: '{name}' not found{' in playground' if playground else ''}."
@@ -413,7 +424,8 @@ def rename(
     home: Path = PLAYGROUND_DIR if playground else PROJECTS_DIR
     this_project: Path = home / old_name
 
-    validate_project(home=home, name=old_name, playground=playground)
+    # validate_project_old(home=home, name=old_name, playground=playground)
+    validate_project(project=this_project, playground=playground)
 
     to_rename: list[Path] = _find_dirs_same_names(this_project)
 
@@ -503,8 +515,25 @@ def rm(
 
 
 @app.command(help="Begin working on the main file to start analysis.")
-def begin() -> None:
-    pass
+def begin(
+    name: str = typer.Argument(help="The name of the project you want to start."),
+    playground: bool = typer.Option(
+        False, "-p", "--playground", help="Choose a playground project."
+    ),
+) -> None:
+
+    this_project: Path = _get_project_dir(name=name, playground=playground)
+
+    validate_project(this_project, playground)
+
+    try:
+        subprocess.run(["code", this_project], check=True)
+    except FileNotFoundError:
+        print("File not found")
+    except subprocess.CalledProcessError as e:
+        print(f"Error launching VS code: {e}")
+    except Exception as e:
+        print(f"An unexpected error occured: {e}")
 
 
 def main() -> None:

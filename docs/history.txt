@@ -4,4 +4,4 @@ natrayn-imdb: https://www.kaggle.com/datasets/bharatnatrayn/movies-dataset-for-f
 shahid-ytda: https://www.kaggle.com/datasets/shaistashahid/youtube-analytics-data
 ahmed-product: https://www.kaggle.com/datasets/sharafatahmed/product-dataset
 uciml-wine: https://www.kaggle.com/datasets/uciml/red-wine-quality-cortez-et-al-2009
-uygurr=sales: https://www.kaggle.com/datasets/umuttuygurr/e-commerce-customer-behavior-and-sales-analysis-tr
+uygurr-sales: https://www.kaggle.com/datasets/umuttuygurr/e-commerce-customer-behavior-and-sales-analysis-tr
