@@ -63,32 +63,32 @@ class KaggleProjectManager:
         handle = self._get_handle_from_url()
         self.handle = handle
 
-    def init_kaggle(self) -> None:
-        project_path: Path = PROJECTS_DIR / self.project_name
+    # def init_kaggle(self) -> None:
+    #     project_path: Path = PROJECTS_DIR / self.project_name
 
-        # Make project folder
-        mkdir_project(self.project_name)
+    #     # Make project folder
+    #     mkdir_project(self.project_name)
 
-        # Make data folders in the newly created project folder
-        data_folders_paths = mkdir_data_folders(project_path)
-        raw_path: Path = data_folders_paths["raw"]
-        external_path: Path = data_folders_paths["external"]
+    #     # Make data folders in the newly created project folder
+    #     data_folders_paths = mkdir_data_folders(project_path)
+    #     raw_path: Path = data_folders_paths["raw"]
+    #     external_path: Path = data_folders_paths["external"]
 
-        # Download dataset from kaggle
-        kaggle.api.authenticate()
+    #     # Download dataset from kaggle
+    #     kaggle.api.authenticate()
 
-        try:
-            kaggle.api.dataset_download_files(
-                dataset=self.handle, path=raw_path, unzip=True
-            )
-        except HTTPError as e:
-            print(e)
-            print("Kaggle dataset not found. Please verify the kaggle URL is correct.")
-        else:
-            kaggle.api.dataset_metadata(dataset=self.handle, path=external_path)
+    #     try:
+    #         kaggle.api.dataset_download_files(
+    #             dataset=self.handle, path=raw_path, unzip=True
+    #         )
+    #     except HTTPError as e:
+    #         print(e)
+    #         print("Kaggle dataset not found. Please verify the kaggle URL is correct.")
+    #     else:
+    #         kaggle.api.dataset_metadata(dataset=self.handle, path=external_path)
 
-        print("The dataset has been succefully downloaded")
-        return
+    #     print("The dataset has been succefully downloaded")
+    #     return
 
     def download_to(self, project: Path) -> None:
         raw_path: Path = project / "data" / "raw"
@@ -153,6 +153,33 @@ def _get_project_dir(name: str, playground: bool = False) -> Path:
     return home_dir / name
 
 
+def validate_project(home: Path, name: str, playground: bool) -> None:
+    if home / name not in _find_project_dirs(home):
+        raise FileNotFoundError(
+            f"Project: '{name}' not found{' in playground' if playground else ''}."
+        )
+    pass
+
+
+# TODO: complete
+def _find_dirs_same_names(project: Path) -> list[Path]:
+    """Finds the directories of the files with the same name as the input.
+    Ignore data files
+    """
+    output: list[Path] = []
+
+    pattern = f"*{project.name}*"
+    for f in project.rglob(pattern):
+        if f.parent.parent.name == "data":
+            continue
+        else:
+            output.append(f)
+
+    output.append(project)
+
+    return output
+
+
 # ================================================================================
 # CREATE
 # ================================================================================
@@ -171,6 +198,9 @@ def init(
         False,
         "--force-overwrite",
         help="Forcefully overwrite existing initialisation files.",
+    ),
+    kaggle_url: str | None = typer.Option(
+        None, "-ku", "--kaggle-url", help="Initialise a project with a kaggle dataset."
     ),
 ) -> None:
     new_project_dir = _get_project_dir(name, playground)
@@ -227,6 +257,19 @@ def init(
 
         # print(f"New file: '{sources}'")
 
+    if kaggle_url:
+        kaggle_pm = KaggleProjectManager(kaggle_url=kaggle_url, project_name=name)
+        kaggle_pm.download_to(new_project_dir)
+
+        # Append url to history.txt
+        # TODO: append only if unique
+        with open(f"{BASE_DIR}/docs/history.txt", "a") as f:
+            f.write(f"{name}: {kaggle_url}")
+
+        # Append url to sources.txt
+        with open(f"{new_project_dir}/docs/{sources}", "a") as f:
+            f.write(f"url: {kaggle_url}")
+
 
 @app.command()
 def init_kaggle(url: str = typer.Argument()) -> None:
@@ -245,10 +288,11 @@ def dl(
 ) -> None:
     home: Path = PLAYGROUND_DIR if playground else PROJECTS_DIR
 
-    if home / name not in _find_project_dirs(home):
-        raise FileNotFoundError(
-            f"Project: '{name}' not found{' in playground' if playground else ''}."
-        )
+    validate_project(home=home, name=name, playground=playground)
+    # if home / name not in _find_project_dirs(home):
+    #     raise FileNotFoundError(
+    #         f"Project: '{name}' not found{' in playground' if playground else ''}."
+    #     )
 
     if kaggle_url:
         kaggle_pm = KaggleProjectManager(kaggle_url, name)
@@ -342,6 +386,39 @@ def read_data_files() -> None:
 # ================================================================================
 # UPDATE
 # ================================================================================
+
+
+# TODO: complete rename
+@app.command()
+def rename(
+    old_to_new: list[str] = typer.Argument(
+        help="The name of the file you want to rename."
+    ),
+    playground: bool = typer.Option(
+        False, "-p", "--playground", help="Choose the file playground."
+    ),
+) -> None:
+    if len(old_to_new) != 2:
+        raise ValueError("Only list two names: name, new_name")
+
+    old_name: str = old_to_new[0]
+    new_name: str = old_to_new[1]
+
+    home: Path = PLAYGROUND_DIR if playground else PROJECTS_DIR
+    this_project: Path = home / old_name
+
+    validate_project(home=home, name=old_name, playground=playground)
+
+    to_rename: list[Path] = _find_dirs_same_names(this_project)
+
+    for f in to_rename:
+        old_path: Path = f.parent / f.name
+        new_path: Path = f.parent / f.name.replace(old_name, new_name)
+
+        try:
+            os.rename(old_path, new_path)
+        except Exception as e:
+            print(e)
 
 
 @app.command(help="Move a project from playground/ to projects/")

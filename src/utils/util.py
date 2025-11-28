@@ -10,7 +10,7 @@ from rich.table import Table
 from src.utils.paths import PROJECTS_DIR
 
 random_string_length = 6
-data_folder_names: list[str] = ["raw", "interim", "processed", "external"]
+data_folder_names: list[str] = ["raw", "interim", "processed", "external", "db"]
 
 
 def random_string(length: int = random_string_length) -> str:
