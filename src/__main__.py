@@ -9,6 +9,7 @@ import kaggle
 import nbformat as nbf
 import pandas as pd
 import typer
+import openpyxl
 from icecream import ic
 from pandas import DataFrame, Series
 from requests.exceptions import HTTPError
@@ -131,11 +132,15 @@ def _find_project_dirs(
 ) -> set[Path]:
     dir_names: list[str] = os.listdir(home)
 
+    ignore_files: list[str] = ["README.md"]
+
     projects: set[Path] = set()
     temps: set[Path] = set()
 
     for dir_name in dir_names:
         if dir_name.startswith(unwanted_strs):
+            continue
+        elif dir_name in ignore_files:
             continue
 
         if dir_name.startswith("~"):
@@ -160,14 +165,6 @@ def _get_project_dir(name: str, playground: bool = False) -> Path:
     return home_dir / name
 
 
-def validate_project_old(home: Path, name: str, playground: bool) -> None:
-    if home / name not in _find_project_dirs(home):
-        raise FileNotFoundError(
-            f"Project: '{name}' not found{' in playground' if playground else ''}."
-        )
-    pass
-
-
 def validate_project(project: Path, playground: bool = False) -> None:
     home = project.parent
     if project not in _find_project_dirs(home=home):
@@ -181,10 +178,12 @@ def _find_dirs_same_names(project: Path) -> list[Path]:
     """Finds the directories of the files with the same name as the input.
     Ignore data files
     """
+
     output: list[Path] = []
 
     pattern = f"*{project.name}*"
     for f in project.rglob(pattern):
+        # ignore all datafiles
         if f.parent.parent.name == "data":
             continue
         else:
@@ -195,9 +194,6 @@ def _find_dirs_same_names(project: Path) -> list[Path]:
     return output
 
 
-# ================================================================================
-# CREATE
-# ================================================================================
 @app.command(help="Initialise a project.")
 def init(
     name: str = typer.Argument(
@@ -211,6 +207,7 @@ def init(
     ),
     force: bool = typer.Option(
         False,
+        "-f",
         "--force-overwrite",
         help="Forcefully overwrite existing initialisation files.",
     ),
@@ -266,7 +263,7 @@ def init(
 
     # Sources
     sources = "sources.txt"
-    if sources not in docs_files or force:
+    if sources not in docs_files:
         with open(f"{new_project_dir}/docs/{sources}", "w"):
             pass
 
@@ -287,11 +284,6 @@ def init(
 
 
 @app.command()
-def init_kaggle(url: str = typer.Argument()) -> None:
-    pass
-
-
-@app.command()
 def dl(
     name: str = typer.Argument(help="Download the dataset in this project."),
     playground: bool = typer.Option(
@@ -304,12 +296,12 @@ def dl(
     home: Path = PLAYGROUND_DIR if playground else PROJECTS_DIR
     this_project = _get_project_dir(name=name, playground=playground)
 
-    # validate_project_old(home=home, name=name, playground=playground)
+    is_input_url = bool(kaggle_url)
+
+    if not is_input_url:
+        raise ValueError("User must input a url.")
+
     validate_project(project=this_project, playground=playground)
-    # if home / name not in _find_project_dirs(home):
-    #     raise FileNotFoundError(
-    #         f"Project: '{name}' not found{' in playground' if playground else ''}."
-    #     )
 
     if kaggle_url:
         kaggle_pm = KaggleProjectManager(kaggle_url, name)
@@ -319,11 +311,6 @@ def dl(
 @app.command()
 def create_db() -> None:
     pass
-
-
-# ================================================================================
-# READ
-# ================================================================================
 
 
 @app.command(help="List projects.")
@@ -396,13 +383,8 @@ def ls(
 
 
 @app.command()
-def read_data_files() -> None:
+def show() -> None:
     pass
-
-
-# ================================================================================
-# UPDATE
-# ================================================================================
 
 
 # TODO: rename history.txt
@@ -424,7 +406,6 @@ def rename(
     home: Path = PLAYGROUND_DIR if playground else PROJECTS_DIR
     this_project: Path = home / old_name
 
-    # validate_project_old(home=home, name=old_name, playground=playground)
     validate_project(project=this_project, playground=playground)
 
     to_rename: list[Path] = _find_dirs_same_names(this_project)
@@ -449,15 +430,56 @@ def demote() -> None:
     pass
 
 
-@app.command()
-def copy_data_files(name: str = typer.Argument()) -> None:
-    print(name)
-    pass
+@app.command(help="Copies data files from raw to interim turning any .csv to .xlsx.")
+def cp(
+    name: str = typer.Argument(
+        help="The name of the project you want to copy data within."
+    ),
+    playground: bool = typer.Option(
+        False,
+        "-p",
+        "--playground",
+        help="Copy data within a project inside the playground directory.",
+    ),
+) -> None:
+    """Any .csv files are turned into"""
+    this_project: Path = _get_project_dir(name=name, playground=playground)
+
+    raw_path: Path = this_project / "data" / "raw"
+    interim_path: Path = this_project / "data" / "interim"
+
+    copy_attachment = "-copy"
+
+    csv_exts = [".csv"]
+    xls_exts = [".xls", ".xlsx", ".xlsm"]
+    # .xls .xlsx .xlsm .xlsb .xltx .xltm .xlm
+    other_exts = [".tsv", ".txt"]
+
+    for raw_file in raw_path.iterdir():
+        old_name: str = raw_file.name
+        old_stem: str = old_name.split(".")[0]
+        old_ext: str = old_name.removeprefix(old_stem)
+        # old_name = old_stem + old_ext
+
+        new_stem: str = old_stem + copy_attachment
+
+        # if .csv
+        if old_ext in csv_exts:
+            new_ext: str = ".xlsx"
+            interim_file = interim_path / (new_stem + new_ext)
+
+            data: DataFrame = pd.read_csv(raw_file)
+            data.to_excel(interim_file, index=False, engine="openpyxl")
+
+        # if any .xlsx
+        if old_ext in xls_exts:
+            interim_file = interim_path / old_name
+            with open(interim_file, "w"):
+                pass
+
+        # if any other
 
 
-# ================================================================================
-#  DELETE
-# ================================================================================
 @app.command(help="Delete a project.")
 def rm(
     project_names: list[str] | None = typer.Argument(
@@ -521,7 +543,6 @@ def begin(
         False, "-p", "--playground", help="Choose a playground project."
     ),
 ) -> None:
-
     this_project: Path = _get_project_dir(name=name, playground=playground)
 
     validate_project(this_project, playground)

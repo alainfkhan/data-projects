@@ -1,7 +1,7 @@
 # This file may be used to create an environment using:
 # $ conda create --name <env> --file <this file>
 # platform: osx-arm64
-# created-by: conda 25.9.1
+# created-by: conda 25.11.0
 _python_abi3_support=1.0=hd8ed1ab_2
 appnope=0.1.4=pyhd8ed1ab_1
 asttokens=3.0.0=pyhd8ed1ab_1
