@@ -5,6 +5,7 @@
 # Ignore temporarily
 *.txt
 ~*
+data/
 !package-list.txt
 !history.txt
 !*notes.txt

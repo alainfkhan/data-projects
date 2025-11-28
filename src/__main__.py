@@ -39,28 +39,34 @@ class ProjectsManager:
 
 
 class KaggleProjectManager:
+    protocol = "https://"
     valid_kaggle_url = "www.kaggle.com"
 
     def _is_kaggle_url(self, url: str) -> bool:
         parsed_url = urlparse(url=url)
         return parsed_url.netloc == self.valid_kaggle_url
 
-    def _get_handle_from_url(self) -> str:
-        """https://www.kaggle.com/datasets/johnsmith/somedataset/data -> johnsmith/somedataset"""
+    # def _get_handle_from_url(self) -> str:
+    #     """https://www.kaggle.com/datasets/johnsmith/somedataset/data... -> johnsmith/somedataset"""
 
-        handle: str = self.kaggle_url.removeprefix(
-            f"https://{self.valid_kaggle_url}/datasets/"
-        ).removesuffix("/data")
-        return handle
+    #     handle: str = self.kaggle_url.removeprefix(
+    #         f"https://{self.valid_kaggle_url}/datasets/"
+    #     ).split("/data")[0]
+    #     return handle
 
     def __init__(self, kaggle_url: str, project_name: str) -> None:
         if not self._is_kaggle_url(kaggle_url):
             raise ValueError("Not a valid kaggle url.")
 
-        self.kaggle_url = kaggle_url
-        self.project_name = project_name
+        splits = kaggle_url.removeprefix(self.protocol).split("/")
+        dataset_name_splits = splits[3].split("?")
+        dataset_name = dataset_name_splits[0]
 
-        handle = self._get_handle_from_url()
+        handle: str = f"{splits[2]}/{dataset_name}"
+        clean_url: str = f"{self.protocol}{splits[0]}/{splits[1]}/{handle}"
+
+        self.project_name = project_name
+        self.kaggle_url = clean_url
         self.handle = handle
 
     # def init_kaggle(self) -> None:
@@ -106,7 +112,7 @@ class KaggleProjectManager:
         else:
             kaggle.api.dataset_metadata(dataset=self.handle, path=external_path)
 
-        print("The dataset has been successfully downloaded.")
+        # print("The dataset has been successfully downloaded.")
 
         pass
 
@@ -264,11 +270,11 @@ def init(
         # Append url to history.txt
         # TODO: append only if unique
         with open(f"{BASE_DIR}/docs/history.txt", "a") as f:
-            f.write(f"{name}: {kaggle_url}")
+            f.write(f"\n{name}: {kaggle_pm.kaggle_url}")
 
         # Append url to sources.txt
         with open(f"{new_project_dir}/docs/{sources}", "a") as f:
-            f.write(f"url: {kaggle_url}")
+            f.write(f"url: {kaggle_pm.kaggle_url}")
 
 
 @app.command()
@@ -388,7 +394,7 @@ def read_data_files() -> None:
 # ================================================================================
 
 
-# TODO: complete rename
+# TODO: rename history.txt
 @app.command()
 def rename(
     old_to_new: list[str] = typer.Argument(
@@ -432,7 +438,7 @@ def demote() -> None:
 
 
 @app.command()
-def copy_data_files(name: str = typer.Argument(help="")) -> None:
+def copy_data_files(name: str = typer.Argument()) -> None:
     print(name)
     pass
 
