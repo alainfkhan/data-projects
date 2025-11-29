@@ -1,0 +1,6 @@
+[submodule "dpx"]
+	path = dpx
+	url = git@github.com:alainfkhan/data-projects-dpx.git
+[submodule "dp-projects"]
+	path = dp-projects
+	url = git@github.com:alainfkhan/data-projects-projects.git
