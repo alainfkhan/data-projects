@@ -110,9 +110,13 @@ class KaggleProjectManager:
             )
         except HTTPError as e:
             print(e)
-            print("Kaggle dataset not found. Verify the kaggle URL is correct.")
+            print(
+                "Kaggle dataset not found. Verify the kaggle URL is correct."
+            )
         else:
-            kaggle.api.dataset_metadata(dataset=self.handle, path=external_path)
+            kaggle.api.dataset_metadata(
+                dataset=self.handle, path=external_path
+            )
 
         # print("The dataset has been successfully downloaded.")
 
@@ -128,7 +132,9 @@ class KaggleProjectManager:
 
 
 def _find_project_dirs(
-    home: Path = PROJECTS_DIR, temps_only: bool = False, non_temps_only: bool = False
+    home: Path = PROJECTS_DIR,
+    temps_only: bool = False,
+    non_temps_only: bool = False,
 ) -> set[Path]:
     dir_names: list[str] = os.listdir(home)
 
@@ -199,6 +205,7 @@ def init(
     name: str = typer.Argument(
         "~" + random_string(), help="Create a name for the project."
     ),
+    test=typer.Argument(),
     playground: bool = typer.Option(
         False,
         "-p",
@@ -212,7 +219,10 @@ def init(
         help="Forcefully overwrite existing initialisation files.",
     ),
     kaggle_url: str | None = typer.Option(
-        None, "-ku", "--kaggle-url", help="Initialise a project with a kaggle dataset."
+        None,
+        "-ku",
+        "--kaggle-url",
+        help="Initialise a project with a kaggle dataset.",
     ),
 ) -> None:
     new_project_dir = _get_project_dir(name, playground)
@@ -270,7 +280,9 @@ def init(
         # print(f"New file: '{sources}'")
 
     if kaggle_url:
-        kaggle_pm = KaggleProjectManager(kaggle_url=kaggle_url, project_name=name)
+        kaggle_pm = KaggleProjectManager(
+            kaggle_url=kaggle_url, project_name=name
+        )
         kaggle_pm.download_to(new_project_dir)
 
         # Append url to history.txt
@@ -321,7 +333,9 @@ def ls(
         "--playgound",
         help="List the projects in the playground.",
     ),
-    temps: bool = typer.Option(False, "-t", "--temps", help="List temporary projects."),
+    temps: bool = typer.Option(
+        False, "-t", "--temps", help="List temporary projects."
+    ),
     non_temps: bool = typer.Option(
         False, "-nt", "--non-temps", help="List non-temporary projects."
     ),
@@ -430,7 +444,9 @@ def demote() -> None:
     pass
 
 
-@app.command(help="Copies data files from raw to interim turning any .csv to .xlsx.")
+@app.command(
+    help="Copies data files from raw to interim turning any .csv to .xlsx."
+)
 def cp(
     name: str = typer.Argument(
         help="The name of the project you want to copy data within."
@@ -532,13 +548,17 @@ def rm(
             shutil.rmtree(f)
             # print(f"Removed: {f.parent.name}/{f.name}.")
         except FileNotFoundError:
-            print(f"Project: '{f.name}' does not exist inside {f.parent.name}/.")
+            print(
+                f"Project: '{f.name}' does not exist inside {f.parent.name}/."
+            )
             pass
 
 
 @app.command(help="Begin working on the main file to start analysis.")
 def begin(
-    name: str = typer.Argument(help="The name of the project you want to start."),
+    name: str = typer.Argument(
+        help="The name of the project you want to start."
+    ),
     playground: bool = typer.Option(
         False, "-p", "--playground", help="Choose a playground project."
     ),
