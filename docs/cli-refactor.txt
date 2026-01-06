@@ -1,0 +1,24 @@
+Commands want to add:
+dpx tree <project>
+    sees the tree of a project
+
+dpx group ls
+dpx project ls
+==================================================
+
+say:
+id, tree
+1, default
+
+then let:
+dpx config --set default_tree_id 1
+dpx config --set default_tree default
+
+be the same
+
+ 
+DP_PATH=$HOME/dev/personal/data-projects/
+DPX_PATH=$DP_PATH/dpx
+
+mv sometree.json $DPX_PATH/trees/
+

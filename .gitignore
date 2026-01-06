@@ -3,7 +3,7 @@
 # ==================================================
 
 # Ignore temporarily
-*.txt
+# *.txt
 ~*
 data/
 !package-list.txt

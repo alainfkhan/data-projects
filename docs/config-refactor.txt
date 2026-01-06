@@ -1,0 +1,6 @@
+default_tree:
+    - id: 1
+    - name: default 
+default_project_dir: ~/dev/personal/data-projects/dp-projects
+
+if default_tree.id changes, so too would default_tree.name to the corresponding name

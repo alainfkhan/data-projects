@@ -1,0 +1,15 @@
+Ideal project tree:
+
+project/
+    docs/
+        notes/
+    refs/
+        sources.txt
+    data/
+        raw/
+        interim/
+        processed/
+        external/
+    notebooks/
+    reports
+    README.md

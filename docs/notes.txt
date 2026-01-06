@@ -1,0 +1,15 @@
+Rough notes:
+
+Projects:
+	dpx
+		a cli app to manage data projects
+	dp-projects
+		a folder containing the projects
+
+
+dpx:
+	prototype in python, then rewrite in rust
+	prototype package manager: UV
+
+dp-projects:
+	package manager: conda

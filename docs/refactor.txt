@@ -1,0 +1,155 @@
+Current:
+
+dp-projects/            # projects in different dirs
+    main/
+        project1/
+    playground/
+        project2/
+    static/
+        project3/
+    notes/
+
+movement of projects from one group (which is a dir) to another allowed
+bad for intra-project connections since paths can change
+
+
+want to change to:
+
+dp-projects/
+    data/
+        db/
+    projects/               # projects all in one dir 
+        project1/
+        project2/
+        project3/
+    notes/
+
+~/dev/personal/data-projects/ is a dir i created
+default project dir = ~/dev/personal/data-projects/dp-projects
+let projects exist in one folder dp-projects/projects/
+disallow for projects to be created and managed outisde of default project dir 
+but allow for the possibility of expansion
+
+consider feat: change project tree after creation
+
+
+db tables: (draft)
+
+projects
+    allow many projects with same name (project_id, uuid diff)
+    tags of projects in another table
+==========
+project_id
+uuid4                       # uuid4 of project name (redundancy)
+project_name                # can have repeats
+tree_id_at_creation         # the file structure of the tree at creation
+tree_id_now                 # the file structure of the tree now. update at call, verify
+group_id                    # can be changed
+created_at                  # project created at
+last_modified_at
+location_id                 # system location
+size                        # size of whole project in bytes
+
+locations
+==========
+location_id
+location_name
+system_path
+
+eg:
+location_id, location_name, system_path
+1, base, ~/dev/personal/data-projects/dp-projects/projects
+2, , ~/dev/personal/
+
+
+if cli project call conflicts make user choose from attributes: groups, tags, uuid4, location
+
+groups
+    a project must belong to a group
+    all upper
+==========
+group_id
+group_name
+created_at
+
+tags
+    tags all upper
+    tags not necessary
+==========
+tag_id
+tag_name
+created_at
+
+project_tags:
+    relationship table
+==========
+project_tag_id  
+project_id
+tag_id
+tagged_at       # dt tag was added to project
+
+eg:
+tags table:
+tag_id, tag, created_at
+1, portfolio, <>
+2, github, <>
+3, data_analysis, <>
+
+project_tags table:
+project_tag_id, project_id, tag_id, tagged_at
+1, 1, 1, <>
+2, 1, 2, <>
+3, 1, 3, <>
+4, 2, 2, <>
+
+means:
+project with project_id: 1, has three tags with tag ids: 1, 2, 3
+project with project_id: 2, has one tag with tag id: 2
+untag project means deleting a row
+keep tagging history in logs
+
+tree
+    all trees should be json (?)
+    composite derived table
+==========
+tree_id
+usual_trees {usual_tree_id}
+custom_trees {custom_tree_id}
+derived_trees {derrived_tree_id}
+
+
+usual_trees
+    built-in trees
+    comes with system
+==========
+usual_tree_id, {U1, U2, ...}
+sha256, (sha of tree)
+usual_tree_name
+tree                            # json, sorted
+
+custom_trees
+    trees in json in some file in dpx
+==========
+custom_tree_id, {C1, C2, ...}
+sha256, (sha of custom tree)
+custom_tree_name                # name of .json.
+tree
+created_at
+
+derived_trees
+    trees generated from viewing project files
+    parse layer,
+==========
+derived_tree_id, {D1, D2, ...}
+sha256
+first_derived_at
+
+sha256 of a tree is the sha256 of the tree sorted alphabetically
+    two json trees that contain the same tree with different sort of dirs should have the same sha
+create a project dirs based on a tree json
+
+allow custom name changes of dirs in trees
+    ie want to change name raw to bronze (how?)
+
+
+
