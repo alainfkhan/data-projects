@@ -11,6 +11,7 @@ dp dir path codes
     190-199 databases
 
 """
+
 type Tree = dict[str, int | Tree]
 
 tree = {
