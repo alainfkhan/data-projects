@@ -1,22 +1,27 @@
-# Project Overview
+## Navigation
 
-Current naming scheme:
+- [Analysis Projects](https://github.com/alainfkhan/data-projects-projects)
+- [`DPM`](https://github.com/alainfkhan/data-projects) `<-`
+  - [`DPX`](https://github.com/alainfkhan/data-projects-dpx)
+  - [`DPP`](https://github.com/alainfkhan/data-projects-projects)
+- [Github profile](https://github.com/alainfkhan)
+
+# Data Project Manager (DPM)
+
+A tool that manages many concurrent data projects.
+
+This monorepo layout:
+
 ```txt
-data-projects       # mono repo
-├── dpx             # source code for app
-└── dp-projects     # where projects live
+data-projects
+├── dpx
+└── dp-projects
 ```
 
-Would like to change to:
+Repos also known as:
+
 ```txt
 DPM         # Data Project Manager
-├── DPX     # Data Project eXecutor
+├── DPX     # Data Project Executor
 └── DPP     # Data Project Projects
 ```
-
-#### Navigation 
-
-- [Analysis projects](https://github.com/alainfkhan/data-projects-projects)
-- [**Project overview**](https://github.com/alainfkhan/data-projects)
-- [(DPX) CLI app](https://github.com/alainfkhan/data-projects-dpx)
-- [Github profile](https://github.com/alainfkhan)
