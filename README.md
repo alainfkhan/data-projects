@@ -4,7 +4,7 @@
 - [`DPM`](https://github.com/alainfkhan/data-projects) `<-`
   - [`DPX`](https://github.com/alainfkhan/data-projects-dpx)
   - [`DPP`](https://github.com/alainfkhan/data-projects-projects)
-- [Github profile](https://github.com/alainfkhan)
+- [Github Profile](https://github.com/alainfkhan)
 
 # Data Project Manager (DPM)
 
