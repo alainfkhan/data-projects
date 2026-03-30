@@ -14,8 +14,8 @@ This monorepo layout:
 
 ```txt
 data-projects
-├── dpx
-└── dp-projects
+├── dpx           # source code for CLI app
+└── dp-projects   # data project store
 ```
 
 Repos also known as:
