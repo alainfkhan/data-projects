@@ -8,13 +8,17 @@
 
 # Data Project Manager (DPM)
 
-A tool that manages many concurrent data projects.
+*A tool that manages data projects.*
+
+This is a monorepo for the source code and data project store.
+
+---
 
 This monorepo layout:
 
 ```txt
 data-projects
-├── dpx           # source code for CLI app
+├── dpx           # source code for the CLI app
 └── dp-projects   # data project store
 ```
 
